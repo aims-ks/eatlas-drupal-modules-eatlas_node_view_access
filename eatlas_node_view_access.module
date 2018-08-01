@@ -1,0 +1,70 @@
+<?php
+/**
+ * Implements hook_permission().
+ *     https://api.drupal.org/api/drupal/modules!system!system.api.php/function/hook_permission/7
+ * Define Content type View permissions - Shown in the Permissions page:
+ *     /admin/people/permissions
+ */
+function eatlas_node_view_access_permission() {
+	$perms = array();
+
+	// Generate standard node permissions for all applicable node types.
+	foreach (node_permissions_get_configured_types() as $type) {
+		$info = node_type_get_type($type);
+		$perms += array(
+			"view any $type content" => array(
+				'title' => t('%type_name: View content', array('%type_name' => $info->name)),
+			)
+		);
+	}
+
+	return $perms;
+}
+
+/**
+ * Implements hook_node_access().
+ *     https://api.drupal.org/api/drupal/modules%21node%21node.api.php/function/hook_node_access/7
+ * Block access to nodes, if the user is not allow to view the content type.
+ */
+function eatlas_node_view_access_node_access($node, $op, $account) {
+	$type = is_string($node) ? $node : $node->type;
+
+	if (in_array($type, node_permissions_get_configured_types())) {
+		if ($op == 'view') {
+			// Denied access to the node if the user is not allowed to
+			// View that content type (unless he is the author of the node)
+			if (!user_access('view any ' . $type . ' content', $account) && ($account->uid !== $node->uid)) {
+				// Access denied!!
+				return NODE_ACCESS_DENY;
+			}
+		}
+	}
+
+	// Let other modules decided
+	return NODE_ACCESS_IGNORE;
+}
+
+/**
+ * Implements hook_node_type_insert().
+ *     https://api.drupal.org/api/drupal/modules!node!node.api.php/function/hook_node_type_insert/7
+ * Set the default values for "View" permissions for new content type.
+ * NOTE: This hook is called when a content type is created.
+ */
+function eatlas_node_view_access_node_type_insert($content_type) {
+	// The permissions for the new content type can not be set before
+	// the new content type has been integrated in the cache.
+	// This is done by calling node_type_cache_reset.
+	node_type_cache_reset();
+
+	$permissions = array("view any $content_type->type content");
+
+	// Set permissions for anonymous users
+	user_role_grant_permissions(DRUPAL_ANONYMOUS_RID, $permissions);
+
+	// Set permissions for authenticated users
+	user_role_grant_permissions(DRUPAL_AUTHENTICATED_RID, $permissions);
+
+	// The other roles are "implicitly" checked since "authenticated" is checked.
+}
+
+?>

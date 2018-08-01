@@ -1,0 +1,15 @@
+name = eAtlas - Node view access
+description = [eatlas/eatlas_node_view_access] Generic module that add "View" permission for each the content type.
+core = 7.x
+
+files[] = eatlas_node_view_access.module
+dependencies[] = node
+dependencies[] = user
+
+package = eAtlas
+
+; Attributes used by the update module.
+; There fields needs to be removed if the module is migrated to Drupal.org
+project status url = "http://drupal.eatlas.org.au/modules/eatlas"
+version = "7.x-1.0"
+project = "eatlas_node_view_access"
